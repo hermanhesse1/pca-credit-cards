@@ -275,3 +275,92 @@ saveRDS(final_results,
 # 18. Clean Up
 plan(sequential)
 toc()
+
+final_acc <- final_metrics %>%
+  filter(.metric == "accuracy") %>%
+  pull(.estimate)
+cat("Final test-set accuracy:", round(final_acc, 4), "\n")
+
+# —— Step 19: Precision & Recall at the Optimal Threshold ——
+
+library(dplyr)
+library(yardstick)
+
+# Step 12: finalize & last_fit
+final_res <- last_fit(final_wf, split_obj)
+
+# Step 13: collect predictions
+test_preds <- collect_predictions(final_res)
+
+thresholds <- seq(0.1, 0.9, by = 0.05)
+
+cost_fn <- 1000
+cost_fp <- 100
+
+cost_analysis <- purrr::map_dfr(thresholds, function(t) {
+  preds_t <- test_preds %>%
+    mutate(.pred_class_t = factor(
+      if_else(.pred_default >= t, "default", "no_default"),
+      levels = levels(default)
+    ))
+  cm_t <- table(preds_t$.pred_class_t, preds_t$default)
+  fp <- cm_t["default", "no_default"]
+  fn <- cm_t["no_default", "default"]
+  tibble(
+    threshold       = t,
+    false_positives = fp,
+    false_negatives = fn,
+    total_cost      = fp * cost_fp + fn * cost_fn
+  )
+})
+
+optimal_cost_threshold <- cost_analysis %>%
+  filter(!is.na(total_cost)) %>%
+  slice_min(total_cost, n = 1) %>%
+  pull(threshold)
+
+library(dplyr)
+library(yardstick)
+library(dplyr)
+library(yardstick)
+
+# ─── 1. Binarize at your optimal threshold ───────────────────────────────────────
+# Make sure you’ve already run:
+#   test_preds <- collect_predictions(final_res)
+#   optimal_cost_threshold <- <your 0.10 value>
+preds_opt <- test_preds %>%
+  mutate(.pred_class_opt = factor(
+    if_else(.pred_default >= optimal_cost_threshold, "default", "no_default"),
+    levels = c("no_default", "default")
+  ))
+
+# ─── 2. Build the confusion matrix ───────────────────────────────────────────────
+cm_opt <- conf_mat(preds_opt, truth = default, estimate = .pred_class_opt)
+print(cm_opt)
+
+# You can also see it as a table:
+tbl <- cm_opt$table
+#              Truth
+# Prediction   no_default  default
+#  no_default      TN         FN
+#  default         FP         TP
+
+TN <- tbl["no_default", "no_default"]
+FP <- tbl["default",    "no_default"]
+FN <- tbl["no_default", "default"]
+TP <- tbl["default",    "default"]
+N  <- TN + FP + FN + TP
+
+# ─── 3. Compute the metrics by formula ──────────────────────────────────────────
+accuracy  <- (TP + TN) / N
+precision <- TP / (TP + FP)
+recall    <- TP / (TP + FN)
+
+# ─── 4. Print them neatly ───────────────────────────────────────────────────────
+cat(sprintf(
+  "At threshold = %.2f:\n  • Accuracy : %.3f\n  • Precision: %.3f\n  • Recall   : %.3f\n",
+  optimal_cost_threshold,
+  accuracy, precision, recall
+))
+
+
