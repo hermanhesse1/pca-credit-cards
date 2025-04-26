@@ -6,7 +6,7 @@ library(themis)        # for downsampling
 library(doParallel)    # parallel backend
 library(readr)         # fast CSV reading
 library(janitor)       # clean_names()
-set.seed(123)          # global seed for reproducibility
+set.seed(123)
 
 # -----------------------------------
 # 2. Read, Clean & Preprocess Data
@@ -14,37 +14,35 @@ set.seed(123)          # global seed for reproducibility
 data <- read_csv("ohe28_cleaned_data.csv", show_col_types = FALSE) %>%
   clean_names()
 
-# Ensure 'default' column exists
 if (!"default" %in% names(data)) {
-  stop("Column 'default' not found. Available columns: ", paste(names(data), collapse = ", "))
+  stop("Column 'default' not found. Available columns: ",
+       paste(names(data), collapse = ", "))
 }
 
-# Convert 0/1 to factor "no"/"yes"
 data <- data %>%
   mutate(default = factor(default,
                           levels = c(0, 1),
-                          labels = c("no", "yes")))
+                          labels = c("no", "yes"))) %>%
+  filter(!is.na(default))  # drop any NA labels
 
 # -----------------------------
 # 3. Train/Test Split
 # -----------------------------
-split     <- initial_split(data, prop = 0.8, strata = default)
+split      <- initial_split(data, prop = 0.8, strata = default)
 train_data <- training(split)
 test_data  <- testing(split)
 
 # -----------------------------
 # 4. Define Preprocessing Recipes
 # -----------------------------
-pca_variance <- 0.90   # retain 90% variance
+pca_variance <- 0.90
 
-# KNN: normalize, remove zero‐variance, PCA, down‐sample
 knn_recipe <- recipe(default ~ ., data = train_data) %>%
   step_normalize(all_numeric_predictors()) %>%
   step_zv(all_predictors()) %>%
   step_pca(all_numeric_predictors(), threshold = pca_variance) %>%
   step_downsample(default)
 
-# RF: remove zero‐variance only
 rf_recipe <- recipe(default ~ ., data = train_data) %>%
   step_zv(all_predictors())
 
@@ -82,13 +80,11 @@ rf_wf <- workflow() %>%
 # -----------------------------
 cv_folds <- vfold_cv(train_data, v = 5, strata = default)
 
-# KNN grid: odd K from 3 to 25
 knn_grid <- tibble(neighbors = seq(3, 25, by = 2))
 
-# RF grid: mtry ≈ sqrt(p) to 2*sqrt(p), min_n values
-p <- ncol(train_data) - 1
+p       <- ncol(train_data) - 1
 rf_grid <- expand.grid(
-  mtry  = round(seq(sqrt(p), min(p, 2*sqrt(p)), length.out = 5)),
+  mtry  = round(seq(sqrt(p), min(p, 2 * sqrt(p)), length.out = 5)),
   min_n = c(2, 5, 10, 20, 50)
 )
 
@@ -98,7 +94,6 @@ rf_grid <- expand.grid(
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
-# Define metrics explicitly from yardstick
 metrics <- metric_set(
   roc_auc,
   yardstick::accuracy,
@@ -106,7 +101,6 @@ metrics <- metric_set(
   yardstick::specificity
 )
 
-# Tune KNN
 if (!file.exists("knn_tune.rds")) {
   knn_tune <- tune_grid(
     knn_wf,
@@ -120,7 +114,6 @@ if (!file.exists("knn_tune.rds")) {
   knn_tune <- readRDS("knn_tune.rds")
 }
 
-# Tune RF
 if (!file.exists("rf_tune.rds")) {
   rf_tune <- tune_grid(
     rf_wf,
@@ -139,8 +132,8 @@ stopCluster(cl)
 # -----------------------------
 # 9. Select Best Hyperparameters
 # -----------------------------
-knn_best <- select_best(knn_tune, "roc_auc")
-rf_best  <- select_best(rf_tune,  "roc_auc")
+knn_best <- select_best(knn_tune, metric = "roc_auc")
+rf_best  <- select_best(rf_tune,  metric = "roc_auc")
 
 # -----------------------------
 # 10. Finalize & Fit Final Models
@@ -152,7 +145,7 @@ final_knn_fit <- fit(final_knn_wf, data = train_data)
 final_rf_fit  <- fit(final_rf_wf,  data = train_data)
 
 # -----------------------------
-# 11. Test‐Set Evaluation
+# 11. Test‐Set Predictions
 # -----------------------------
 knn_preds <- predict(final_knn_fit, test_data, type = "prob")
 rf_preds  <- predict(final_rf_fit,  test_data, type = "prob")
@@ -160,61 +153,92 @@ rf_preds  <- predict(final_rf_fit,  test_data, type = "prob")
 knn_res <- test_data %>%
   select(default) %>%
   bind_cols(knn_preds) %>%
-  mutate(model = "KNN")
+  mutate(
+    .pred_class_05 = factor(if_else(.pred_yes >= 0.5, "yes", "no"),
+                            levels = c("no", "yes"))
+  )
 
 rf_res <- test_data %>%
   select(default) %>%
   bind_cols(rf_preds) %>%
-  mutate(model = "RandomForest")
-
-# ROC AUC & accuracy at 0.5 threshold
-test_metrics <- bind_rows(
-  knn_res %>% roc_auc(truth = default, .pred_yes)  %>% mutate(model = "KNN"),
-  rf_res  %>% roc_auc(truth = default, .pred_yes)  %>% mutate(model = "RandomForest"),
-  knn_res %>% accuracy(truth = default, .pred_yes) %>% mutate(model = "KNN"),
-  rf_res  %>% accuracy(truth = default, .pred_yes) %>% mutate(model = "RandomForest")
-)
-print(test_metrics)
-
-# Compute precision & recall at 0.5 for each model
-prec_rec <- bind_rows(
-  knn_res  %>% precision(truth = default, .pred_yes) %>% mutate(model = "KNN"),
-  rf_res   %>% precision(truth = default, .pred_yes) %>% mutate(model = "RandomForest"),
-  knn_res  %>% recall   (truth = default, .pred_yes) %>% mutate(model = "KNN"),
-  rf_res   %>% recall   (truth = default, .pred_yes) %>% mutate(model = "RandomForest")
-)
-print(prec_rec)
-
-
-# Confusion matrices at 0.5
-knn_class0.5 <- factor(ifelse(knn_res$.pred_yes >= 0.5, "yes", "no"),
-                       levels = c("no", "yes"))
-rf_class0.5  <- factor(ifelse(rf_res$.pred_yes  >= 0.5, "yes", "no"),
-                       levels = c("no", "yes"))
-print(conf_mat(test_data, default, knn_class0.5))
-print(conf_mat(test_data, default, rf_class0.5))
+  mutate(
+    .pred_class_05 = factor(if_else(.pred_yes >= 0.5, "yes", "no"),
+                            levels = c("no", "yes"))
+  )
 
 # -----------------------------
-# 12. Cost‐Based Threshold Optimization
+# 12. Compute Core Metrics
 # -----------------------------
-cost_fp    <- 1
-cost_fn    <- 5
+library(yardstick)  # for ppv() and sens()
+
+core_metrics <- bind_rows(
+  knn_res %>% roc_auc(truth = default, .pred_yes)              %>% mutate(model="KNN"),
+  rf_res  %>% roc_auc(truth = default, .pred_yes)              %>% mutate(model="RF"),
+  knn_res %>% accuracy(truth = default, .pred_class_05)        %>% mutate(model="KNN"),
+  rf_res  %>% accuracy(truth = default, .pred_class_05)        %>% mutate(model="RF"),
+  knn_res %>% ppv(truth = default, estimate = .pred_class_05,
+                  event_level = "second")                     %>% mutate(model="KNN"),
+  rf_res  %>% ppv(truth = default, estimate = .pred_class_05,
+                  event_level = "second")                     %>% mutate(model="RF"),
+  knn_res %>% sens(truth = default, estimate = .pred_class_05,
+                   event_level = "second")                    %>% mutate(model="KNN"),
+  rf_res  %>% sens(truth = default, estimate = .pred_class_05,
+                   event_level = "second")                    %>% mutate(model="RF")
+)
+print(core_metrics)
+
+# -----------------------------
+# 13. Cost‐Based Threshold Sweep
+# -----------------------------
+cost_fp    <- 1; cost_fn <- 5
 thresholds <- seq(0, 1, by = 0.01)
 
 compute_cost <- function(probs, actual, th) {
-  pred <- ifelse(probs >= th, "yes", "no")
+  pred <- if_else(probs >= th, "yes", "no")
   fp   <- sum(pred == "yes" & actual == "no")
   fn   <- sum(pred == "no"  & actual == "yes")
   cost_fp * fp + cost_fn * fn
 }
 
-# KNN optimal threshold
-knn_costs  <- sapply(thresholds, function(t) compute_cost(knn_res$.pred_yes, knn_res$default, t))
+knn_costs  <- sapply(thresholds, compute_cost, probs = knn_res$.pred_yes, actual = knn_res$default)
 knn_opt_th <- thresholds[which.min(knn_costs)]
 cat("KNN optimal threshold:", knn_opt_th, "\n")
 
-# RF optimal threshold
-rf_costs   <- sapply(thresholds, function(t) compute_cost(rf_res$.pred_yes, rf_res$default, t))
+rf_costs   <- sapply(thresholds, compute_cost, probs = rf_res$.pred_yes,  actual = rf_res$default)
 rf_opt_th  <- thresholds[which.min(rf_costs)]
 cat("RF optimal threshold:", rf_opt_th, "\n")
+
+# -----------------------------
+# 14. Confusion & Final Metrics
+# -----------------------------
+# KNN @ optimal
+knn_res_opt <- knn_res %>%
+  mutate(.pred_opt = factor(if_else(.pred_yes >= knn_opt_th, "yes", "no"),
+                            levels = c("no","yes")))
+
+print(conf_mat(knn_res_opt, truth=default, estimate=.pred_opt))
+knn_final <- tibble(
+  accuracy  = accuracy(knn_res_opt, truth=default, estimate=.pred_opt)$.estimate,
+  precision = ppv(knn_res_opt, truth=default, estimate=.pred_opt,
+                  event_level="second")$.estimate,
+  recall    = sens(knn_res_opt, truth=default, estimate=.pred_opt,
+                   event_level="second")$.estimate
+)
+cat("KNN @", knn_opt_th, "\n"); print(knn_final)
+
+# RF @ optimal
+rf_res_opt <- rf_res %>%
+  mutate(.pred_opt = factor(if_else(.pred_yes >= rf_opt_th, "yes","no"),
+                            levels = c("no","yes")))
+
+print(conf_mat(rf_res_opt, truth=default, estimate=.pred_opt))
+rf_final <- tibble(
+  accuracy  = accuracy(rf_res_opt, truth=default, estimate=.pred_opt)$.estimate,
+  precision = ppv(rf_res_opt, truth=default, estimate=.pred_opt,
+                  event_level="second")$.estimate,
+  recall    = sens(rf_res_opt, truth=default, estimate=.pred_opt,
+                   event_level="second")$.estimate
+)
+cat("RF @", rf_opt_th, "\n"); print(rf_final)
+
 
