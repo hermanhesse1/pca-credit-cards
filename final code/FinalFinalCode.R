@@ -863,3 +863,665 @@ print(p)
 ggsave("rf_importance.png", p, width = 9, height = 6)
 
 
+ggplot(cost_df, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2, colour = "#5F4B8B") +
+  geom_vline(xintercept = opt_point$threshold,
+             linetype = "dashed", size = 0.8, colour = "#5F4B8B") +
+  geom_point(data = opt_point, aes(x = threshold, y = total_cost),
+             size = 3, colour = "#5F4B8B") +
+  geom_text_repel(data = opt_point,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(
+                        scales::percent(threshold, accuracy = 1),
+                        "\nCost: ", scales::comma(total_cost)
+                      )),
+                  fontface = "bold",
+                  box.padding = 0.4,
+                  point.padding = 0.3) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for kNN",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict 'yes' if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(dplyr)
+
+# assume you have: thresholds, wknn_costs, cost_fp, cost_fn
+
+cost_df_w <- tibble(
+  threshold  = thresholds,
+  total_cost = wknn_costs
+)
+
+opt_w <- cost_df_w %>% 
+  slice_min(total_cost, with_ties = FALSE)
+
+ggplot(cost_df_w, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2, colour = "#009E73") +
+  geom_vline(xintercept = opt_w$threshold,
+             linetype = "dashed", size = 0.8, colour = "#009E73") +
+  geom_point(data = opt_w, aes(x = threshold, y = total_cost),
+             size = 3, colour = "#009E73") +
+  geom_text_repel(data = opt_w,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(percent(threshold, accuracy = 1),
+                                     "\nCost: ", comma(total_cost))),
+                  fontface     = "bold",
+                  box.padding  = 0.4,
+                  point.padding= 0.3) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for weighted kNN",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict \"yes\" if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(dplyr)
+
+# assume you have: thresholds, wknn_costs, cost_fp, cost_fn
+
+cost_df_w <- tibble(
+  threshold  = thresholds,
+  total_cost = wknn_costs
+)
+
+opt_w <- cost_df_w %>% 
+  slice_min(total_cost, with_ties = FALSE)
+
+ggplot(cost_df_w, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2, colour = "#009E73") +
+  geom_vline(xintercept = opt_w$threshold,
+             linetype = "dashed", size = 0.8, colour = "#009E73") +
+  geom_point(data = opt_w, aes(x = threshold, y = total_cost),
+             size = 3, colour = "#009E73") +
+  geom_text_repel(data = opt_w,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(percent(threshold, accuracy = 1),
+                                     "\nCost: ", comma(total_cost))),
+                  fontface     = "bold",
+                  box.padding  = 0.4,
+                  point.padding= 0.3) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for weighted kNN",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict \"yes\" if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+ggsave("fig_weighted_threshold.png", width = 9, height = 6)
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(dplyr)
+
+# assume you have: thresholds, wknn_costs, cost_fp, cost_fn
+
+cost_df_w <- tibble(
+  threshold  = thresholds,
+  total_cost = wknn_costs
+)
+
+opt_w <- cost_df_w %>% 
+  slice_min(total_cost, with_ties = FALSE)
+
+ggplot(cost_df_w, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2, colour = "#009E73") +
+  geom_vline(xintercept = opt_w$threshold,
+             linetype = "dashed", size = 0.8, colour = "#009E73") +
+  geom_point(data = opt_w, aes(x = threshold, y = total_cost),
+             size = 3, colour = "#009E73") +
+  geom_text_repel(data = opt_w,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(percent(threshold, accuracy = 1),
+                                     "\nCost: ", comma(total_cost))),
+                  fontface     = "bold",
+                  box.padding  = 0.4,
+                  point.padding= 0.3) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for weighted kNN",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict \"yes\" if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+ggsave("fig_weighted_threshold.png", width = 9, height = 6)
+
+
+
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(dplyr)
+
+# assume you already have: thresholds, rf_costs, cost_fp, cost_fn
+
+cost_df_rf <- tibble(
+  threshold  = thresholds,
+  total_cost = rf_costs
+)
+
+opt_rf <- cost_df_rf %>%
+  slice_min(total_cost, with_ties = FALSE)
+
+p_rf <- ggplot(cost_df_rf, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2,   colour = "#D55E00") +
+  geom_vline(xintercept = opt_rf$threshold,
+             linetype   = "dashed",
+             size       = 0.8,
+             colour     = "#D55E00") +
+  geom_point(data = opt_rf,
+             aes(x = threshold, y = total_cost),
+             size   = 3,
+             colour = "#D55E00") +
+  geom_text_repel(data = opt_rf,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(
+                        percent(threshold, accuracy = 1),
+                        "\nCost: ", comma(total_cost)
+                      )),
+                  fontface      = "bold",
+                  box.padding   = 0.4,
+                  point.padding = 0.3) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for Random Forest",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict “yes” if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+ggsave("fig_rf_threshold.png", p_rf, width = 9, height = 6)
+
+
+
+
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(dplyr)
+
+# assume you already have: thresholds, rf_costs, cost_fp, cost_fn
+
+cost_df_rf <- tibble(
+  threshold  = thresholds,
+  total_cost = rf_costs
+)
+
+opt_rf <- cost_df_rf %>%
+  slice_min(total_cost, with_ties = FALSE)
+
+p_rf <- ggplot(cost_df_rf, aes(x = threshold, y = total_cost)) +
+  geom_line(size = 1.2,   colour = "#D55E00") +
+  geom_vline(xintercept = opt_rf$threshold,
+             linetype   = "dashed",
+             size       = 0.8,
+             colour     = "#D55E00") +
+  geom_point(data = opt_rf,
+             aes(x = threshold, y = total_cost),
+             size   = 3,
+             colour = "#D55E00") +
+  geom_text_repel(data = opt_rf,
+                  aes(x = threshold, y = total_cost,
+                      label = paste0(
+                        percent(threshold, accuracy = 1),
+                        "\nCost: ", comma(total_cost)
+                      )),
+                  fontface      = "bold",
+                  box.padding   = 0.4,
+                  point.padding = 0.3) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "Utility U versus Classification Threshold for Random Forest",
+    subtitle = paste0("Cost = (False Positives × ", cost_fp,
+                      ") + (False Negatives × ", cost_fn, ")"),
+    x        = "Probability Threshold (Predict “yes” if ≥ threshold)",
+    y        = "Total Cost on Test Set"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = ggplot2::margin(b = 10)),
+    axis.title    = element_text(face = "bold")
+  )
+
+ggsave("fig_rf_threshold.png", p_rf, width = 9, height = 6)
+
+# … [after you create p_rf as before] …
+
+# Display on screen
+print(p_rf)
+
+# Optionally still save to file
+ggsave("fig_rf_threshold.png", p_rf, width = 9, height = 6)
+
+
+# --- 1. Print interactively at sensible aspect ratio ---
+# (In most R IDEs this will auto-scale to the plotting pane)
+print(
+  p_rf + 
+    theme(
+      plot.margin = ggplot2::margin(10,10,10,10),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+)
+
+# --- 2. Save to file with explicit dimensions so it fits your PDF ---
+ggsave(
+  filename = "fig_rf_threshold.png",
+  plot     = p_rf,
+  width    = 6,    # inches
+  height   = 4,    # inches
+  units    = "in",
+  dpi      = 300
+)
+
+
+p_rf
+ggsave("fig_rf_threshold.png", p_rf, width = 6, height = 4, dpi = 300)
+
+# Weighted kNN threshold plot
+p_wknn
+ggsave("fig_weighted_threshold.png", p_wknn, width = 6, height = 4, dpi = 300)
+
+
+
+
+
+
+
+
+
+# Random Forest threshold plot
+p_rf <- ggplot(cost_df_rf, aes(threshold, total_cost)) +
+  geom_line(size = 1.2, colour = "#D55E00") +
+  geom_vline(xintercept = opt_rf$threshold, linetype = "dashed") +
+  geom_point(data = opt_rf, size = 3) +
+  geom_text_repel(data = opt_rf,
+                  aes(label = paste0(percent(threshold, 1), "\n", comma(total_cost))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "RF: Cost vs Threshold",
+    subtitle = "FP ×1 + FN ×5",
+    x     = "Threshold",
+    y     = "Total Cost"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_rf)
+ggsave("fig_rf_threshold.png", p_rf, width = 6, height = 4, dpi = 300)
+
+# Weighted kNN threshold plot
+p_wknn <- ggplot(cost_df_w, aes(threshold, total_cost)) +
+  geom_line(size = 1.2, colour = "#009E73") +
+  geom_vline(xintercept = opt_w$threshold, linetype = "dashed") +
+  geom_point(data = opt_w, size = 3) +
+  geom_text_repel(data = opt_w,
+                  aes(label = paste0(percent(threshold, 1), "\n", comma(total_cost))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "wKNN: Cost vs Threshold",
+    subtitle = "FP ×1 + FN ×5",
+    x     = "Threshold",
+    y     = "Total Cost"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_wknn)
+ggsave("fig_weighted_threshold.png", p_wknn, width = 6, height = 4, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(ggrepel)
+
+# 1. Unweighted kNN
+cost_df_knn <- tibble(
+  threshold  = thresholds,
+  total_cost = knn_costs
+)
+opt_knn <- cost_df_knn %>% slice_min(total_cost, with_ties = FALSE)
+
+p_knn <- ggplot(cost_df_knn, aes(threshold, total_cost)) +
+  geom_line(colour = "#5F4B8B", size = 1.2) +
+  geom_vline(xintercept = opt_knn$threshold,
+             linetype = "dashed", colour = "#5F4B8B") +
+  geom_point(data = opt_knn, colour = "#5F4B8B", size = 3) +
+  geom_text_repel(data = opt_knn,
+                  aes(label = paste0(percent(threshold, 1), "\n", comma(total_cost))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "kNN: Cost vs Thr",
+    subtitle = "FP×1 + FN×5",
+    x        = "Thr",
+    y        = "Total Cost"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_knn)
+ggsave("fig_knn_thr.png", p_knn, width = 6, height = 4, dpi = 300)
+
+
+# 2. Weighted kNN
+cost_df_wknn <- tibble(
+  threshold  = thresholds,
+  total_cost = wknn_costs
+)
+opt_wknn <- cost_df_wknn %>% slice_min(total_cost, with_ties = FALSE)
+
+p_wknn <- ggplot(cost_df_wknn, aes(threshold, total_cost)) +
+  geom_line(colour = "#009E73", size = 1.2) +
+  geom_vline(xintercept = opt_wknn$threshold,
+             linetype = "dashed", colour = "#009E73") +
+  geom_point(data = opt_wknn, colour = "#009E73", size = 3) +
+  geom_text_repel(data = opt_wknn,
+                  aes(label = paste0(percent(threshold, 1), "\n", comma(total_cost))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "wKNN: Cost vs Thr",
+    subtitle = "FP×1 + FN×5",
+    x        = "Thr",
+    y        = "Total Cost"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_wknn)
+ggsave("fig_wknn_thr.png", p_wknn, width = 6, height = 4, dpi = 300)
+
+
+# 3. Random Forest
+cost_df_rf <- tibble(
+  threshold  = thresholds,
+  total_cost = rf_costs
+)
+opt_rf <- cost_df_rf %>% slice_min(total_cost, with_ties = FALSE)
+
+p_rf <- ggplot(cost_df_rf, aes(threshold, total_cost)) +
+  geom_line(colour = "#D55E00", size = 1.2) +
+  geom_vline(xintercept = opt_rf$threshold,
+             linetype = "dashed", colour = "#D55E00") +
+  geom_point(data = opt_rf, colour = "#D55E00", size = 3) +
+  geom_text_repel(data = opt_rf,
+                  aes(label = paste0(percent(threshold, 1), "\n", comma(total_cost))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title    = "RF: Cost vs Thr",
+    subtitle = "FP×1 + FN×5",
+    x        = "Thr",
+    y        = "Total Cost"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_rf)
+ggsave("fig_rf_thr.png", p_rf, width = 6, height = 4, dpi = 300)
+
+
+
+
+library(tidyverse)
+library(scales)
+library(ggrepel)
+
+# number of test instances
+n_test <- nrow(test_data)
+
+# helper: build cost‐vs‐threshold & optimal point for any cost vector
+make_cost_df <- function(costs, col, n) {
+  tibble(
+    threshold   = thresholds,
+    total_cost  = costs
+  ) %>%
+    mutate(
+      avg_cost = total_cost / n
+    ) %>%
+    rename(!!col := avg_cost)
+}
+
+# 1. unweighted kNN
+cost_df_knn <- make_cost_df(knn_costs, "avg_cost", n_test)
+opt_knn    <- cost_df_knn %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_knn <- ggplot(cost_df_knn, aes(threshold, avg_cost)) +
+  geom_line(colour = "#5F4B8B", size = 1.2) +
+  geom_vline(xintercept = opt_knn$threshold,
+             linetype = "dashed", colour = "#5F4B8B") +
+  geom_point(data = opt_knn, colour = "#5F4B8B", size = 3) +
+  geom_text_repel(data = opt_knn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title    = "kNN: Avg cost vs threshold",
+    x        = "Threshold",
+    y        = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 2. weighted kNN
+cost_df_wknn <- make_cost_df(wknn_costs, "avg_cost", n_test)
+opt_wknn    <- cost_df_wknn %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_wknn <- ggplot(cost_df_wknn, aes(threshold, avg_cost)) +
+  geom_line(colour = "#009E73", size = 1.2) +
+  geom_vline(xintercept = opt_wknn$threshold,
+             linetype = "dashed", colour = "#009E73") +
+  geom_point(data = opt_wknn, colour = "#009E73", size = 3) +
+  geom_text_repel(data = opt_wknn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title    = "wKNN: Avg cost vs threshold",
+    x        = "Threshold",
+    y        = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 3. Random Forest
+cost_df_rf <- make_cost_df(rf_costs, "avg_cost", n_test)
+opt_rf    <- cost_df_rf %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_rf <- ggplot(cost_df_rf, aes(threshold, avg_cost)) +
+  geom_line(colour = "#D55E00", size = 1.2) +
+  geom_vline(xintercept = opt_rf$threshold,
+             linetype = "dashed", colour = "#D55E00") +
+  geom_point(data = opt_rf, colour = "#D55E00", size = 3) +
+  geom_text_repel(data = opt_rf,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title    = "RF: Avg cost vs threshold",
+    x        = "Threshold",
+    y        = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# display all three
+gridExtra::grid.arrange(p_knn, p_wknn, p_rf, ncol = 1)
+
+# print minimal average costs
+cat("Minimal avg cost per test case:\n",
+    sprintf("  kNN       : NT$ %.1f at thr=%.2f\n", opt_knn$avg_cost, opt_knn$threshold),
+    sprintf("  wKNN      : NT$ %.1f at thr=%.2f\n", opt_wknn$avg_cost, opt_wknn$threshold),
+    sprintf("  Random RF : NT$ %.1f at thr=%.2f\n", opt_rf$avg_cost, opt_rf$threshold))
+
+
+
+
+library(tidyverse)
+library(scales)
+library(ggrepel)
+
+# number of test instances
+n_test <- nrow(test_data)
+
+# helper to build cost‐vs‐threshold + optimal point table
+make_cost_df <- function(costs, n) {
+  tibble(
+    threshold  = thresholds,
+    total_cost = costs
+  ) %>%
+    mutate(avg_cost = total_cost / n)
+}
+
+# 1) Unweighted kNN
+cost_df_knn <- make_cost_df(knn_costs, n_test)
+opt_knn    <- cost_df_knn %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_knn <- ggplot(cost_df_knn, aes(threshold, avg_cost)) +
+  geom_line(colour = "#5F4B8B", size = 1.2) +
+  geom_vline(xintercept = opt_knn$threshold,
+             linetype = "dashed", colour = "#5F4B8B") +
+  geom_point(data = opt_knn, colour = "#5F4B8B", size = 3) +
+  geom_text_repel(data = opt_knn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title = "kNN: Avg cost per customer",
+    x     = "Threshold",
+    y     = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("fig_knn_avg_cost.png", p_knn, width = 6, height = 4, dpi = 300)
+
+
+
+# 2) Weighted kNN
+cost_df_wknn <- make_cost_df(wknn_costs, n_test)
+opt_wknn    <- cost_df_wknn %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_wknn <- ggplot(cost_df_wknn, aes(threshold, avg_cost)) +
+  geom_line(colour = "#009E73", size = 1.2) +
+  geom_vline(xintercept = opt_wknn$threshold,
+             linetype = "dashed", colour = "#009E73") +
+  geom_point(data = opt_wknn, colour = "#009E73", size = 3) +
+  geom_text_repel(data = opt_wknn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title = "wKNN: Avg cost per customer",
+    x     = "Threshold",
+    y     = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("fig_wknn_avg_cost.png", p_wknn, width = 6, height = 4, dpi = 300)
+
+
+
+# 3) Random Forest
+cost_df_rf <- make_cost_df(rf_costs, n_test)
+opt_rf    <- cost_df_rf %>% slice_min(avg_cost, with_ties = FALSE)
+
+p_rf <- ggplot(cost_df_rf, aes(threshold, avg_cost)) +
+  geom_line(colour = "#D55E00", size = 1.2) +
+  geom_vline(xintercept = opt_rf$threshold,
+             linetype = "dashed", colour = "#D55E00") +
+  geom_point(data = opt_rf, colour = "#D55E00", size = 3) +
+  geom_text_repel(data = opt_rf,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_cost,1))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1), breaks = seq(0,1,0.1)) +
+  labs(
+    title = "RF: Avg cost per customer",
+    x     = "Threshold",
+    y     = "Avg cost (NT$)"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("fig_rf_avg_cost.png", p_rf, width = 6, height = 4, dpi = 300)
+
+# After you’ve built p_knn, p_wknn and p_rf, simply run:
+
+p_knn
+
+p_wknn
+p_rf
