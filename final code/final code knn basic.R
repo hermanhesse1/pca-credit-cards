@@ -9,10 +9,18 @@ options(scipen = 999)
 
 ### Packages ###
 
+
+library(tibble)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(scales)
 library(tidyverse)
 library(caret)
 library(kknn)
 library(class)
+library(corrplot)
+library(ggcorrplot)
 
 ### Data Cleaning ### 
 
@@ -56,10 +64,50 @@ train_idx <- sample.int(n, size = 0.8*n) # 80% for training
 train <- data[train_idx, ]
 test  <- data[-train_idx, ]
 
-# train_ohe = data_ohe[train_idx, ]
-# test_ohe = data_ohe[-train_idx, ]
+#### EDA
 
 
+# correlation matrix 
+vars <- names(data)[18:23] #change from variable range to see the different correlation plots
+
+mat  <- cor(data[vars])
+
+# plot without reordering; make labels smaller
+ggcorrplot(mat,
+           hc.order   = FALSE,     # keep the data‐frame order (not clustered)
+           type       = "lower",   # or "full"/"upper" as you wish
+           lab        = TRUE,      # show correlation coefficients
+           lab_size   = 3          # size of the coefficient labels
+) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8)
+  )
+
+
+ggplot(data, aes(x = factor(Default),
+                 y = LIMIT_BAL,
+                 fill = factor(Default))) +            # colour by Default
+  geom_boxplot(outlier.shape = 21,
+               outlier.fill  = "red",
+               notch         = TRUE) +
+  scale_fill_manual(name   = "Default",
+                    values = c("0" = "skyblue",       # choose your colours
+                               "1" = "tomato"),
+                    labels = c("0" = "No default",
+                               "1" = "Default")) +
+  labs(title = "Distribution of Credit Limit by Default Status",
+       x     = "Default (0 = no, 1 = yes)",
+       y     = "Limit Balance") +
+  theme_minimal(base_size = 12) +
+  theme(
+    # rotate x–labels
+    axis.text.x       = element_text(angle = 45, hjust = 1),
+    plot.title        = element_text(hjust = 0.5),
+    # ensure both major and minor grid lines are shown
+    panel.grid.major  = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor  = element_line(color = "grey90", size = 0.25))
 
 
 # visualising the training distributions of the repayment status variables
@@ -90,7 +138,7 @@ data[, 6:11] <- lapply(data[, 6:11], function(x)
 # visualising training data new transformation  
 
 
-df_long <- train %>%
+df_long <- data %>%
   pivot_longer(
     cols = starts_with("Repayment status"),
     names_to  = "month",
@@ -102,7 +150,7 @@ ggplot(df_long, aes(x = delay)) +
                  fill="steelblue", colour="white") +
   scale_x_continuous(breaks=sort(unique(df_long$delay))) +
   facet_wrap(~ month, ncol = 3) +
-  labs(x="Repayment Delay (months) in Training set", y="Count") +
+  labs(x="Repayment Delay after transformation", y="Count") +
   theme_minimal()
 
 
@@ -523,6 +571,38 @@ avg_test_cost <- test_utility / nrow(test_ohe)
 avg_test_cost
 
 
+####
+
+util_df_knn <- tibble(
+  threshold    = thresh_grid,
+  avg_utility  = -mean_utils / 4800
+)
+
+opt_knn <- util_df_knn %>% 
+  slice_min(avg_utility, with_ties = FALSE)
+
+p_knn <- ggplot(util_df_knn, aes(threshold, avg_utility)) +
+  geom_line(colour = "#0072B2", size = 1.2) +
+  geom_vline(xintercept = opt_knn$threshold,
+             linetype = "dashed",
+             colour = "#0072B2") +
+  geom_point(data = opt_knn,
+             colour = "#0072B2", size = 3) +
+  geom_text_repel(data = opt_knn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_utility, 2))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1),
+                     breaks = seq(0, 1, 0.1)) +
+  labs(
+    title = "Greedy kNN: CV Utility vs. Threshold ",
+    x     = "Threshold",
+    y     = "Average CV Utility"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+print(p_knn)
 
 
 
@@ -783,8 +863,8 @@ best_util/4800 # average cost of for each validation sample, train sample is 240
 
 
 
-# threshold candidates: proportion of the k=5 neighbours
-thresh_grid <- seq(1/5, 0.5, by = 1/5)
+# threshold candidates: proportion of the 
+thresh_grid <- seq(1/10, 0.5, by = 1/10)
 
 # evaluate a single threshold by 5-fold CV on the PCA training data
 eval_thresh <- function(thresh) {
@@ -837,7 +917,7 @@ cat("best threshold =", best_thresh, "\n",
 final_knn <- knn(
   train   = as.matrix(pca_train_df[, selected]),
   test    = as.matrix(pca_test_df[, selected]),
-  cl      = factor(pca_train_df[, 28]),  # ← col 28
+  cl      = factor(pca_train_df[, 28]),  
   k       = fixed_k,
   use.all = TRUE,
   prob    = TRUE
@@ -862,29 +942,53 @@ max(mean_utils)/4800
 avg_test_cost
 
 
+average_util <- -mean_utils / 4800
+
+# plot
+plot(thresh_grid, average_util, type = "b",
+     xlab = "Threshold",
+     ylab = "Average CV Utility",
+     main = "Average Utility vs. Threshold",
+     pch  = 19, 
+     col  = "blue")
+
+# mark the optimal threshold
+abline(v = best_thresh, lty = 2, col = "red")
 
 
 
 
+# 1) Unweighted kNN utility vs. threshold
+util_df_knn <- tibble(
+  threshold    = thresh_grid,
+  avg_utility  = -mean_utils / 4800
+)
+
+opt_knn <- util_df_knn %>% 
+  slice_min(avg_utility, with_ties = FALSE)
+
+p_knn <- ggplot(util_df_knn, aes(threshold, avg_utility)) +
+  geom_line(colour = "#0072B2", size = 1.2) +
+  geom_vline(xintercept = opt_knn$threshold,
+             linetype = "dashed",
+             colour = "#0072B2") +
+  geom_point(data = opt_knn,
+             colour = "#0072B2", size = 3) +
+  geom_text_repel(data = opt_knn,
+                  aes(label = paste0(percent(threshold, 1),
+                                     "\n", round(avg_utility, 2))),
+                  fontface = "bold") +
+  scale_x_continuous(labels = percent_format(1),
+                     breaks = seq(0, 1, 0.1)) +
+  labs(
+    title = "Greedy kNN with PCA: CV Utility vs. Threshold ",
+    x     = "Threshold",
+    y     = "Average CV Utility"
+  ) +
+  theme_minimal(base_size = 14)
 
 
-
-
-
-
-
-
-### does the evaluation stand up to evaluation? a first principle approach to the evaluation of classifiers
-
-rm(list = ls())
-
-
-
-
-
-
-
-
+print(p_knn)
 
 
 
