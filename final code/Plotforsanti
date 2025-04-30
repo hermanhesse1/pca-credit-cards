@@ -1,0 +1,50 @@
+# after you’ve computed roc_obj and probs…
+library(ggplot2)
+library(scales)    # for percent_format()
+library(ggrepel)   # for geom_text_repel()
+
+# 1. Turn your ROC into a data.frame
+roc_df <- data.frame(
+  fpr       = 1 - roc_obj$specificities,
+  tpr       = roc_obj$sensitivities,
+  threshold = roc_obj$thresholds
+)
+
+# 2. Find the “best” threshold via Youden’s J
+best <- coords(
+  roc_obj,
+  x       = "best",
+  input   = "threshold",
+  ret     = c("threshold","specificity","sensitivity"),
+  best.method = "youden"
+)
+best_thr  <- best["threshold"]
+best_spec <- best["specificity"]
+best_tpr  <- best["sensitivity"]
+best_fpr  <- 1 - best_spec
+
+# 3. Plot with ggplot
+p_roc <- ggplot(roc_df, aes(x = fpr, y = tpr)) +
+  geom_line(colour = "#5F4B8B", size = 1.2) +                               # ROC curve
+  geom_abline(slope = 1, intercept = 0,                                     
+              linetype = "dashed", colour = "#5F4B8B") +                     # chance line
+  geom_point(data = data.frame(fpr = best_fpr, tpr = best_tpr),
+             aes(x = fpr, y = tpr),
+             colour = "#5F4B8B", size = 3) +                                # best‐threshold point
+  geom_text_repel(data = data.frame(fpr = best_fpr, tpr = best_tpr, thr = best_thr),
+                  aes(x = fpr, y = tpr,
+                      label = paste0("Thr=", percent(thr, 1),
+                                     "\nTPR=", round(tpr,2))),
+                  fontface = "bold") +                                       # label
+  scale_x_continuous(labels = percent_format(1)) +
+  scale_y_continuous(labels = percent_format(1)) +
+  labs(
+    title = sprintf("ROC Curve (AUC = %.3f)", auc(roc_obj)),
+    x     = "False Positive Rate",
+    y     = "True Positive Rate"
+  ) +
+  theme_minimal(base_size = 14)
+
+print(p_roc)
+
+cat("Test AUC:", round(auc(roc_obj), 3), "\n")
